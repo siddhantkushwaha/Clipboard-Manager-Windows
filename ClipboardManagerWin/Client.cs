@@ -20,8 +20,11 @@ namespace ClipboardUtilityWindows
 
         private void BuildEndpoint(int port)
         {
-            ipHost = Dns.GetHostEntry(Dns.GetHostName());
-            ipAddress = ipHost.AddressList[0];
+            ipHost = Dns.GetHostEntry("localhost");
+
+            // We want IPV4 address
+            ipAddress = Array.Find(ipHost.AddressList, ip => ip.AddressFamily == AddressFamily.InterNetwork);
+
             endPoint = new IPEndPoint(ipAddress, port);
         }
 
@@ -37,21 +40,7 @@ namespace ClipboardUtilityWindows
                 byte[] messageSent = Encoding.ASCII.GetBytes(message);
                 int byteSent = sender.Send(messageSent);
 
-                // ------------ TODO - repetetive code, might wanna encapsulate ------------
-                string messageReceived = "";
-
-                int bufferSize = 1;
-                byte[] buffer = new byte[1024];
-
-                while (bufferSize > 0)
-                {
-                    bufferSize = sender.Receive(buffer);
-                    if (bufferSize > 0)
-                    {
-                        messageReceived += Encoding.ASCII.GetString(buffer, 0, bufferSize);
-                    }
-                }
-                // -------------------------------------------------------------------------
+                string messageReceived = Util.readFromSocket(sender);
 
                 Console.WriteLine($"Message received [{messageReceived}].");
 

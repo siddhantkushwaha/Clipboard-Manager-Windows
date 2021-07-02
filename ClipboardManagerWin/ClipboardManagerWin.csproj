@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Util.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="ClipboardApp.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

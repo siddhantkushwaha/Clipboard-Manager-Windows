@@ -21,8 +21,11 @@ namespace ClipboardUtilityWindows
 
         private void BuildEndpoint(int port)
         {
-            ipHost = Dns.GetHostEntry(Dns.GetHostName());
-            ipAddress = ipHost.AddressList[0];
+            ipHost = Dns.GetHostEntry("localhost");
+
+            // We want IPV4 address
+            ipAddress = Array.Find(ipHost.AddressList, ip => ip.AddressFamily == AddressFamily.InterNetwork);
+
             endPoint = new IPEndPoint(ipAddress, port);
         }
 
@@ -33,33 +36,14 @@ namespace ClipboardUtilityWindows
                 Socket listener = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                 listener.Bind(endPoint);
 
-                listener.Listen(1);
+                listener.Listen(10);
 
                 while (true)
                 {
                     Console.WriteLine($"Unity socket server active on port [{endPoint.Port}].");
                     Socket clientSocket = listener.Accept();
 
-                    // ------------ TODO - repetetive code, might wanna encapsulate ------------
-                    string messageReceived = "";
-
-                    int bufferSize = 1;
-                    byte[] buffer = new byte[1024];
-
-                    while (bufferSize > 0)
-                    {
-                        bufferSize = clientSocket.Receive(buffer);
-                        if (bufferSize > 0)
-                        {
-                            messageReceived += Encoding.ASCII.GetString(buffer, 0, bufferSize);
-                        }
-                    }
-                    // -------------------------------------------------------------------------
-
-                    Console.WriteLine($"Message received [{messageReceived}].");
-
-                    // implementing this via thread because this is not an asynchronous SocketServer like NodeJS
-                    HandleMessageAsync(clientSocket, messageReceived);
+                    HandleClientAsync(clientSocket);
                 }
             }
             catch (Exception e)
@@ -68,36 +52,59 @@ namespace ClipboardUtilityWindows
             }
         }
 
-        private void HandleMessageAsync(Socket clientSocket, string message)
+        private void HandleClientAsync(Socket clientSocket)
         {
-            Thread handlerThread = new Thread(() => {
-                HandleMessage(clientSocket, message);
+            Thread handlerThread = new Thread(() =>
+            {
+                try
+                {
+                    Console.WriteLine("Reading from socket.");
+                    string messageReceived = Util.readFromSocket(clientSocket);
+
+                    Console.WriteLine($"Message received [{messageReceived}].");
+
+                    string response = HandleMessage(messageReceived);
+                    byte[] responseBytes = Encoding.ASCII.GetBytes(response);
+                    int byteSent = clientSocket.Send(responseBytes);
+
+                    clientSocket.Shutdown(SocketShutdown.Both);
+                    clientSocket.Close();
+                }
+                catch(Exception e)
+                {
+                    Console.WriteLine(e);
+                }
             });
             handlerThread.Start();
         }
 
-        private void HandleMessage(Socket clientSocket, string message)
+        /* 
+            Do not send null response from here.
+        */
+        private string HandleMessage(string message)
         {
+            JObject response = new JObject();
+            response.Add("status", 1);
+
             try
             {
-                JObject messageUnserialized = (JObject)JsonConvert.DeserializeObject(message);
+                if (message != null)
+                {
+                    JObject messageUnserialized = (JObject)JsonConvert.DeserializeObject(message);
 
-                // process my message, and send response
+                    // process my message, and modify response as needed
 
-                JObject response = new JObject();
-                response.Add("status", 0);
-
-                var responseSerialized = JsonConvert.SerializeObject(response);
-                byte[] responseBytes = Encoding.ASCII.GetBytes(responseSerialized);
-                int byteSent = clientSocket.Send(responseBytes);
-
-                clientSocket.Shutdown(SocketShutdown.Both);
-                clientSocket.Close();
+                    response.Property("status").Remove();
+                    response.Add("status", 0);
+                }           
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
             }
+
+            var responseSerialized = JsonConvert.SerializeObject(response);
+            return responseSerialized;
         }
     }
 }
