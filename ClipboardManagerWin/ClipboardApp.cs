@@ -6,10 +6,8 @@
 
 
 using System;
-using System.Threading;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
-
 
 namespace ClipboardUtilityWindows
 {
@@ -55,6 +53,8 @@ namespace ClipboardUtilityWindows
 
                                 var text = Clipboard.GetText();
                                 Console.WriteLine(text);
+
+                                // TODO - send message to sync server to handle event
                             }
                             else if (Clipboard.ContainsFileDropList())
                             {
@@ -91,23 +91,9 @@ namespace ClipboardUtilityWindows
             }
         }
 
-        private static void InitClipboardChangeListener()
+        public static void Run()
         {
-            Console.WriteLine("Initializing clipboard change listener.");
             Application.Run(new NotificationForm());
-        }
-
-        private static void Main(string[] args)
-        {
-            Thread listenerThread = new Thread(InitClipboardChangeListener);
-            listenerThread.SetApartmentState(ApartmentState.STA);
-            listenerThread.Start();
-
-            // put this in another thread
-            Console.WriteLine("Initializing clipboard command listener.");
-            // dummy command
-
-            listenerThread.Join();
         }
     }
 }
