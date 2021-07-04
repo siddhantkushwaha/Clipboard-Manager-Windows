@@ -29,8 +29,9 @@ namespace ClipboardUtilityWindows
             endPoint = new IPEndPoint(ipAddress, port);
         }
 
-        public void InitServer()
+        public int InitServer()
         {
+            int returnCode = 0;
             try
             {
                 Socket listener = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -46,10 +47,17 @@ namespace ClipboardUtilityWindows
                     HandleClientAsync(clientSocket);
                 }
             }
+            catch (System.Net.Sockets.SocketException)
+            {
+                returnCode = 1;
+            }
             catch (Exception e)
             {
                 Console.WriteLine(e);
+                returnCode = 2;
             }
+
+            return returnCode;
         }
 
         private void HandleClientAsync(Socket clientSocket)
