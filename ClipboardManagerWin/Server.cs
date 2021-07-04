@@ -47,7 +47,7 @@ namespace ClipboardUtilityWindows
                     HandleClientAsync(clientSocket);
                 }
             }
-            catch (System.Net.Sockets.SocketException)
+            catch (SocketException)
             {
                 returnCode = 1;
             }
