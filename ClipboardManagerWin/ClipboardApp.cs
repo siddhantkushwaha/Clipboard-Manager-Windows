@@ -9,7 +9,7 @@ using System;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 
-namespace ClipboardUtilityWindows
+namespace ClipboardManagerWindows
 {
     internal static class NativeMethods
     {
@@ -40,54 +40,61 @@ namespace ClipboardUtilityWindows
 
             protected override void WndProc(ref Message m)
             {
-                // handle clipboard update message               
-                switch (m.Msg)
+                try
                 {
-                    case NativeMethods.WM_CLIPBOARDUPDATE:
-                        {
-                            // handle different data formats
-                            // TODO - there possibly exist better ways of doing this, figure that out later if possible
-                            if (Clipboard.ContainsText())
+                    // handle clipboard update message               
+                    switch (m.Msg)
+                    {
+                        case NativeMethods.WM_CLIPBOARDUPDATE:
                             {
-                                Console.WriteLine("New text added to clipboard");
-
-                                var text = Clipboard.GetText();
-                                Console.WriteLine(text);
-
-                                // TODO - send message to sync server to handle event
-                            }
-                            else if (Clipboard.ContainsFileDropList())
-                            {
-                                // TODO - Handle files later :D, at least we know we can
-                                Console.WriteLine("Files were copied.");
-
-                                var fileDropList = Clipboard.GetFileDropList();
-                                foreach (var file in fileDropList)
+                                // handle different data formats
+                                // TODO - there possibly exist better ways of doing this, figure that out later if possible
+                                if (Clipboard.ContainsText())
                                 {
-                                    Console.WriteLine(file);
+                                    Console.WriteLine("New text added to clipboard");
+
+                                    var text = Clipboard.GetText();
+                                    Console.WriteLine(text);
+
+                                    // TODO - send message to sync server to handle event
                                 }
-                            }
-                            else if (Clipboard.ContainsImage())
-                            {
-                                // TODO - handle images later too
-                                Console.WriteLine("Image was copied.");
-                            }
-                            else
-                            {
-                                Console.WriteLine("Data format not supported as of now.");
-                            }
+                                else if (Clipboard.ContainsFileDropList())
+                                {
+                                    // TODO - Handle files later :D, at least we know we can
+                                    Console.WriteLine("Files were copied.");
 
-                            break;
-                        }
-                    default:
-                        {
-                            // Update message not handled.
-                            break;
-                        }
+                                    var fileDropList = Clipboard.GetFileDropList();
+                                    foreach (var file in fileDropList)
+                                    {
+                                        Console.WriteLine(file);
+                                    }
+                                }
+                                else if (Clipboard.ContainsImage())
+                                {
+                                    // TODO - handle images later too
+                                    Console.WriteLine("Image was copied.");
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Data format not supported as of now.");
+                                }
+
+                                break;
+                            }
+                        default:
+                            {
+                                // Update message not handled.
+                                break;
+                            }
+                    }
+
+                    //Called for any unhandled messages
+                    base.WndProc(ref m);
                 }
-
-                //Called for any unhandled messages
-                base.WndProc(ref m);
+                catch(Exception e)
+                {
+                    Console.WriteLine(e);
+                }
             }
         }
 

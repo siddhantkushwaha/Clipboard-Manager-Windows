@@ -6,7 +6,7 @@ using System.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace ClipboardUtilityWindows
+namespace ClipboardManagerWindows
 {
     class Server
     {
