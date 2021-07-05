@@ -32,20 +32,25 @@ namespace ClipboardManagerWindows
         {
             try
             {
-                Socket sender = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                sender.Connect(endPoint);
+                Socket serverSocket = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+                // timeout read and write in 5 seconds
+                serverSocket.ReceiveTimeout = 5000;
+                serverSocket.SendTimeout = 5000;
+
+                serverSocket.Connect(endPoint);
 
                 Console.WriteLine($"Sending message [{message}].");
 
                 byte[] messageSent = Encoding.ASCII.GetBytes(message);
-                int byteSent = sender.Send(messageSent);
+                int byteSent = serverSocket.Send(messageSent);
 
-                string messageReceived = Util.readFromSocket(sender);
+                string messageReceived = Util.readFromSocket(serverSocket);
 
                 Console.WriteLine($"Message received [{messageReceived}].");
 
-                sender.Shutdown(SocketShutdown.Both);
-                sender.Close();
+                serverSocket.Shutdown(SocketShutdown.Both);
+                serverSocket.Close();
 
                 return messageReceived;
             }

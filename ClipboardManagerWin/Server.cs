@@ -42,7 +42,12 @@ namespace ClipboardManagerWindows
                 while (true)
                 {
                     Console.WriteLine($"Unity socket server active on port [{endPoint.Port}].");
+
                     Socket clientSocket = listener.Accept();
+
+                    // timeout reads and writes in 5 seconds
+                    clientSocket.ReceiveTimeout = 5000;
+                    clientSocket.SendTimeout = 5000;
 
                     HandleClientAsync(clientSocket);
                 }
