@@ -28,8 +28,6 @@ namespace ClipboardManagerWindows
 
     internal class NotificationForm : Form
     {
-        readonly object clipboardLock = new object();
-
         private ClipboardApp clipboardApp;
 
         public NotificationForm(ClipboardApp clipboardApp)
@@ -47,7 +45,7 @@ namespace ClipboardManagerWindows
         {
             try
             {
-                lock (clipboardLock)
+                lock (clipboardApp.GetLock())
                 {
                     // handle clipboard update message               
                     switch (m.Msg)
@@ -107,7 +105,7 @@ namespace ClipboardManagerWindows
 
         public void UpdateClipboard(string text)
         {
-            lock (clipboardLock)
+            lock (clipboardApp.GetLock())
             {
                 Clipboard.SetText(text);
             }
@@ -116,12 +114,19 @@ namespace ClipboardManagerWindows
 
     public sealed class ClipboardApp
     {
+        private readonly object clipboardLock = new object();
+
         private int clipboardServerPort;
         private NotificationForm notificationForm;
 
         public ClipboardApp(int clipboardServerPort)
         {
             this.clipboardServerPort = clipboardServerPort;
+        }
+
+        public object GetLock()
+        {
+            return clipboardLock;
         }
 
         public void StartListening()
