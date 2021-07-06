@@ -29,13 +29,13 @@ namespace ClipboardManagerWindows
                     return;
                 }
 
+                ClipboardApp clipboardApp = new ClipboardApp(unityServerPort);
+
                 // Clipboard event listener
                 Thread listenerThread = new Thread(() =>
                 {
-
                     Console.WriteLine("Initializing clipboard change listener.");
-                    ClipboardApp.Run();
-
+                    clipboardApp.StartListening();
                 });
                 listenerThread.SetApartmentState(ApartmentState.STA);
                 listenerThread.Start();

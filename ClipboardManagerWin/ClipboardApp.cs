@@ -25,22 +25,28 @@ namespace ClipboardManagerWindows
         public static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
     }
 
-    public sealed class ClipboardApp
+    internal class NotificationForm : Form
     {
-        private class NotificationForm : Form
+        readonly object clipboardLock = new object();
+
+        private ClipboardApp clipboardApp;
+
+        public NotificationForm(ClipboardApp clipboardApp)
         {
-            public NotificationForm()
-            {
-                //Turn the child window into a message-only window
-                NativeMethods.SetParent(Handle, NativeMethods.HWND_MESSAGE);
+            this.clipboardApp = clipboardApp;
 
-                //Place window in the system-maintained clipboard format listener list
-                NativeMethods.AddClipboardFormatListener(Handle);
-            }
+            //Turn the child window into a message-only window
+            NativeMethods.SetParent(Handle, NativeMethods.HWND_MESSAGE);
 
-            protected override void WndProc(ref Message m)
+            //Place window in the system-maintained clipboard format listener list
+            NativeMethods.AddClipboardFormatListener(Handle);
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            try
             {
-                try
+                lock (clipboardLock)
                 {
                     // handle clipboard update message               
                     switch (m.Msg)
@@ -87,20 +93,50 @@ namespace ClipboardManagerWindows
                                 break;
                             }
                     }
+                }
 
-                    //Called for any unhandled messages
-                    base.WndProc(ref m);
-                }
-                catch(Exception e)
-                {
-                    Console.WriteLine(e);
-                }
+                //Called for any unhandled messages
+                base.WndProc(ref m);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
             }
         }
 
-        public static void Run()
+        public void updateClipboard(string text)
         {
-            Application.Run(new NotificationForm());
+            lock (clipboardLock)
+            {
+                Clipboard.SetText(text);
+            }
+        }
+    }
+
+    public sealed class ClipboardApp
+    {
+        private int clipboardServerPort;
+        private NotificationForm notificationForm;
+
+        public ClipboardApp(int clipboardServerPort)
+        {
+            this.clipboardServerPort = clipboardServerPort;
+        }
+
+        public void StartListening()
+        {
+            notificationForm = new NotificationForm(this);
+            Application.Run(notificationForm);
+        }
+
+        public void sendUpdate()
+        {
+            // TODO - implement
+        }
+
+        public void updateClipboard(string text)
+        { 
+            notificationForm.updateClipboard(text);
         }
     }
 }

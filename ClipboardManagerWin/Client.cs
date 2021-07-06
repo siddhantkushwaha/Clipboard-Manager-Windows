@@ -39,7 +39,7 @@ namespace ClipboardManagerWindows
                 serverSocket.SendTimeout = 5000;
 
                 serverSocket.Connect(endPoint);
-
+                
                 Console.WriteLine($"Sending message [{message}].");
 
                 byte[] messageSent = Encoding.ASCII.GetBytes(message);
