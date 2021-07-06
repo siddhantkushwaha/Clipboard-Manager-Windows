@@ -8,6 +8,7 @@
 using System;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace ClipboardManagerWindows
 {
@@ -104,7 +105,7 @@ namespace ClipboardManagerWindows
             }
         }
 
-        public void updateClipboard(string text)
+        public void UpdateClipboard(string text)
         {
             lock (clipboardLock)
             {
@@ -129,14 +130,22 @@ namespace ClipboardManagerWindows
             Application.Run(notificationForm);
         }
 
-        public void sendUpdate()
+        public void SendUpdate()
         {
             // TODO - implement
         }
 
-        public void updateClipboard(string text)
-        { 
-            notificationForm.updateClipboard(text);
+        // Clipboard ops have to run in a single apartment thread on Windows
+        // But we'll make it work like a synchronous call
+        public void UpdateClipboard(string text)
+        {
+            Thread updateThread = new Thread(() =>
+            {
+                notificationForm?.UpdateClipboard(text);
+            });
+            updateThread.SetApartmentState(ApartmentState.STA);
+            updateThread.Start();
+            updateThread.Join();
         }
     }
 }
