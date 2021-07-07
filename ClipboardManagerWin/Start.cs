@@ -43,7 +43,7 @@ namespace ClipboardManagerWindows
                 // Using socket server as a session lock for this process as well :D
                 Console.WriteLine("Initializing socket server.");
 
-                Server server = new Server(clipBoardManagerPort);
+                Server server = new Server(clipBoardManagerPort, clipboardApp);
                 int retCode = server.InitServer();
                 if (retCode > 0)
                 {

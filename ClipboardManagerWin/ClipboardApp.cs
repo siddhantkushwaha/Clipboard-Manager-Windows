@@ -9,6 +9,7 @@ using System;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Newtonsoft.Json.Linq;
 
 namespace ClipboardManagerWindows
 {
@@ -61,7 +62,7 @@ namespace ClipboardManagerWindows
                                     var text = Clipboard.GetText();
                                     Console.WriteLine(text);
 
-                                    // TODO - send message to sync server to handle event
+                                    clipboardApp.SendTextUpdate(text);
                                 }
                                 else if (Clipboard.ContainsFileDropList())
                                 {
@@ -103,12 +104,9 @@ namespace ClipboardManagerWindows
             }
         }
 
-        public void UpdateClipboard(string text)
+        public void UpdateClipboard(string dataFormat, object data)
         {
-            lock (clipboardApp.GetLock())
-            {
-                Clipboard.SetText(text);
-            }
+            Clipboard.SetData(dataFormat, data);
         }
     }
 
@@ -116,12 +114,37 @@ namespace ClipboardManagerWindows
     {
         private readonly object clipboardLock = new object();
 
-        private int clipboardServerPort;
         private NotificationForm notificationForm;
+        private Client serverConnecion;
+        private JObject lastSuccessfullUpdate = null;
 
         public ClipboardApp(int clipboardServerPort)
         {
-            this.clipboardServerPort = clipboardServerPort;
+            this.serverConnecion = new Client(clipboardServerPort);
+        }
+
+        private void SendUpdate(JObject update)
+        {
+            if (JToken.DeepEquals(lastSuccessfullUpdate, update))
+            {
+                Console.WriteLine("Matches with last update, discarding.");
+                return;
+            }
+
+            JObject commandMessage = new JObject
+            {
+                {"messageType" , "syncMessage"},
+                {"updateMessage", update }
+            };
+
+            JObject response = serverConnecion.SendMessage(commandMessage);
+            Console.WriteLine(response);
+
+            int status = response?.GetValue("status")?.Value<int>() ?? -1;
+            if (status == 0)
+            {
+                lastSuccessfullUpdate = update;
+            }
         }
 
         public object GetLock()
@@ -135,22 +158,67 @@ namespace ClipboardManagerWindows
             Application.Run(notificationForm);
         }
 
-        public void SendUpdate()
+        public void SendTextUpdate(string text)
         {
-            // TODO - implement
+            JObject update = new JObject
+            {
+                { "type", 1 },
+                { "text", text }
+            };
+            SendUpdate(update);
         }
 
         // Clipboard ops have to run in a single apartment thread on Windows
         // But we'll make it work like a synchronous call
-        public void UpdateClipboard(string text)
+        public void UpdateClipboard(JObject update)
         {
-            Thread updateThread = new Thread(() =>
+            lock (clipboardLock)
             {
-                notificationForm?.UpdateClipboard(text);
-            });
-            updateThread.SetApartmentState(ApartmentState.STA);
-            updateThread.Start();
-            updateThread.Join();
+                Console.WriteLine("Updating clipboard");
+
+                int type = update.GetValue("type")?.Value<int>() ?? -1;
+
+                object data = null;
+                string format = null;
+
+                switch(type)
+                {
+                    case 1:
+
+                        // text
+                        string text = update.GetValue("text")?.Value<string>() ?? "";
+                        if (text.Length > 0)
+                        {
+                            format = DataFormats.Text;
+                            data = text;
+                        }
+
+                        break;
+                    case 2:
+
+                        // files not supported yet
+
+                        break;
+                    default:
+
+                        // do nothing
+
+                        break;
+                }
+
+                if (notificationForm != null && format != null && data != null)
+                {
+                    Thread updateThread = new Thread(() =>
+                    {
+                        notificationForm?.UpdateClipboard(format, data);
+                    });
+                    updateThread.SetApartmentState(ApartmentState.STA);
+                    updateThread.Start();
+                    updateThread.Join();
+
+                    lastSuccessfullUpdate = update;
+                }
+            }
         }
     }
 }

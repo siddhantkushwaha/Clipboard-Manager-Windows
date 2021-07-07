@@ -14,9 +14,12 @@ namespace ClipboardManagerWindows
         private IPAddress ipAddress;
         private IPEndPoint endPoint;
 
-        public Server(int port)
+        private ClipboardApp clipboardApp;
+
+        public Server(int port, ClipboardApp clipboardApp)
         {
             BuildEndpoint(port);
+            this.clipboardApp = clipboardApp;
         }
 
         private void BuildEndpoint(int port)
@@ -83,7 +86,7 @@ namespace ClipboardManagerWindows
                     clientSocket.Shutdown(SocketShutdown.Both);
                     clientSocket.Close();
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     Console.WriteLine(e);
                 }
@@ -96,8 +99,7 @@ namespace ClipboardManagerWindows
         */
         private string HandleMessage(string message)
         {
-            JObject response = new JObject();
-            response.Add("status", 1);
+            int status = 1;
 
             try
             {
@@ -106,15 +108,35 @@ namespace ClipboardManagerWindows
                     JObject messageUnserialized = (JObject)JsonConvert.DeserializeObject(message);
 
                     // process my message, and modify response as needed
+                    string messageType = messageUnserialized.GetValue("messageType")?.Value<string>() ?? "";
+                    switch(messageType)
+                    {
+                        case "updateClipboard":
 
-                    response.Property("status").Remove();
-                    response.Add("status", 0);
-                }           
+                            JObject update = messageUnserialized.GetValue("updateMessage")?.Value<JObject>();
+                            clipboardApp.UpdateClipboard(update);
+                            status = 0;
+
+                            break;
+                        default:
+
+                            // type not supported
+
+                            break;
+                    }
+
+                    status = 0;
+                }
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
             }
+
+            JObject response = new JObject
+            {
+                {"status", status }
+            };
 
             var responseSerialized = JsonConvert.SerializeObject(response);
             return responseSerialized;
