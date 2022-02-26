@@ -8,7 +8,5 @@ I'll soon be adding links to repos for other platforms here.
 
     1. MacOS
     2. Linux
-    3. Android
-    4. iOS
 
 Please feel free to reach out if interested in contributing.
